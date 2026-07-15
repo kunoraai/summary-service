@@ -1,6 +1,7 @@
 name: release
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
 
@@ -30,6 +31,13 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: ghcr.io/kunoraai/summary-service:${{ github.sha }}
+      - name: Make container package public
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          gh api --method PATCH
+          /orgs/kunoraai/packages/container/summary-service
+          -f visibility=public
       - uses: actions/checkout@v4
         with:
           repository: kunoraai/platform-config
