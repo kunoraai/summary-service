@@ -9,7 +9,7 @@ import httpx
 import openai
 from pydantic import BaseModel, StringConstraints, ValidationError
 from pydantic_ai import Agent, UnexpectedModelBehavior
-from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
 from summary_service.settings import Settings
@@ -72,13 +72,16 @@ class PydanticSummaryAgent:
             base_url=settings.llm_base_url,
             api_key=settings.dashscope_api_key,
         )
-        model = OpenAIModel(settings.model_name, provider=provider)
+        model = OpenAIChatModel(settings.model_name, provider=provider)
         self._agent = Agent(
             model,
             output_type=SummaryOutput,
             system_prompt=settings.system_prompt,
             retries=0,
-            model_settings={"timeout": settings.llm_timeout_seconds},
+            model_settings={
+                "timeout": settings.llm_timeout_seconds,
+                "extra_body": {"enable_thinking": False},
+            },
         )
         self._task_prompt = settings.task_prompt
 

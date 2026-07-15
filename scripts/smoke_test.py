@@ -12,11 +12,15 @@ def main() -> None:
     parser.add_argument("--base-url", required=True)
     parser.add_argument("--api-key-env", default="SUMMARY_SERVICE_API_KEY")
     parser.add_argument("--timeout", type=int, default=180)
+    parser.add_argument("--local-address")
     args = parser.parse_args()
     api_key = os.environ[args.api_key_env]
     headers = {"X-API-Key": api_key}
 
-    with httpx.Client(base_url=args.base_url, timeout=30) as client:
+    transport = (
+        httpx.HTTPTransport(local_address=args.local_address) if args.local_address else None
+    )
+    with httpx.Client(base_url=args.base_url, timeout=30, transport=transport) as client:
         assert client.post("/v1/summaries", json={"text": "test"}).status_code == 401
         oversized = client.post("/v1/summaries", json={"text": "界" * 87_382}, headers=headers)
         assert oversized.status_code == 413, oversized.text

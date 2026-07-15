@@ -8,11 +8,14 @@ from pydantic import ValidationError
 
 from summary_service.llm import (
     LLMExhausted,
+    PydanticSummaryAgent,
     SummaryOutput,
     classify_exception,
     generate_with_retries,
     render_task_prompt,
 )
+from summary_service.security import sha256_hex
+from summary_service.settings import Settings
 
 
 def test_summary_rejects_more_than_400_unicode_characters() -> None:
@@ -22,6 +25,19 @@ def test_summary_rejects_more_than_400_unicode_characters() -> None:
 
 def test_task_prompt_replaces_only_configured_placeholder() -> None:
     assert render_task_prompt("文档：{{ text }}", "正文") == "文档：正文"
+
+
+def test_qwen_agent_disables_thinking_for_structured_output(tmp_path) -> None:
+    settings = Settings(
+        database_path=str(tmp_path / "llm.db"),
+        dashscope_api_key="test-key",
+        api_keys=f"client:{sha256_hex('client-key')}",
+        idempotency_secret="x" * 32,
+    )
+
+    agent = PydanticSummaryAgent(settings)
+
+    assert agent._agent.model_settings["extra_body"] == {"enable_thinking": False}
 
 
 def test_timeout_is_transient_and_validation_is_permanent() -> None:
